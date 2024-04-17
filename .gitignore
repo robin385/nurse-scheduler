@@ -10,3 +10,12 @@ node_modules
 .output
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+firebase
+
+firebase/
+
+firebase/*
+
+/firebase/firebase_config.js
+
+/src/firebase/*

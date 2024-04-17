@@ -400,8 +400,8 @@
   }
 </script>
 
-<div class="print" style="display: flex; justify-content: space-between;">
-  <Button class="print" style="width: 10%;" on:click={reset}>Reset</Button>
+<div class="print flex flex-col sm:flex-row justify-between">
+  <Button class="print sm:w-1/4" on:click={reset}>Reset</Button>
   <div class="print">
     <DateTime on:change={handleDateChange}></DateTime>
   </div>
@@ -505,9 +505,9 @@
                 {#if user.shifts && user.shifts.length > 20}
                   <span style="color: black; max-width:20px;">{user.shifts[i + 1]}</span>
                 {:else if user.offDays[day.date() - 1]}
-                  <span style="color: red;"><X style="max-width: 20px; position: relative;"></X></span>
+                  <span class="flex items-center justify-center -ml-2" style="color: red;"><X></X></span>
                 {:else}
-                  <span style="color: green;"><Check style="max-width: 20px; position: relative;"></Check></span>
+                  <span class="flex items-center justify-center -ml-2" style="color: green;"><Check></Check></span>
                 {/if}
               </button></Table.Cell
             >
