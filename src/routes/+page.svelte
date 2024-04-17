@@ -123,13 +123,9 @@
 
     // Check if there is at least one male in the shift
     if (
-      shift.length < perShift - 1 &&
-      ((shift.length == perShift - 1 && user.gender !== "female") ||
-        (shift.length == 2 &&
-          user.gender === "female" &&
-          shift[0].gender === "female" &&
-          shift[1].gender == "female") ||
-        (shift.length == 2 && shift[0].gender === "male" && shift[1].gender === "male" && user.gender === "male"))
+      shift.length === perShift - 1 &&
+      shift.every((person) => person.gender === "female") &&
+      user.gender !== "female"
     ) {
       return null;
     }
