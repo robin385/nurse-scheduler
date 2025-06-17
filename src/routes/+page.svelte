@@ -17,7 +17,7 @@
   import Numberinput from "./numberinput.svelte";
   import { LogIn } from "lucide-svelte";
   import * as HoverCard from "../components/ui/hover-card";
-  import { read, utils } from "xlsx";
+  import { read, utils, write } from "xlsx";
 
   // Use a writable store for Users
   let open = false;
@@ -446,6 +446,32 @@
     };
     reader.readAsArrayBuffer(file);
   }
+
+  function exportSchedule() {
+    const header = ["Name", ...Array.from({ length: daysInMonth.length }, (_, i) => i + 1)];
+    const data: any[][] = [header];
+    $users.forEach((user) => {
+      const row: any[] = [user.name];
+      for (let i = 1; i <= daysInMonth.length; i++) {
+        if (user.offDays && user.offDays[i - 1]) row.push("x");
+        else row.push(user.shifts[i] ?? "-");
+      }
+      data.push(row);
+    });
+    const worksheet = utils.aoa_to_sheet(data);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, "Schedule");
+    const wbout = write(workbook, { type: "array", bookType: "xlsx" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "schedule.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <div class="print flex flex-col sm:flex-row justify-between">
@@ -575,4 +601,7 @@
     </Table.Body>
   </Table.Root>
 {/if}
-<Button on:click={() => generateSched()} class="print">Generate Schedule</Button>
+<div class="flex gap-2 print">
+  <Button on:click={() => generateSched()}>Generate Schedule</Button>
+  <Button on:click={exportSchedule}>Export Schedule</Button>
+</div>
