@@ -17,6 +17,7 @@
   import Numberinput from "./numberinput.svelte";
   import { LogIn } from "lucide-svelte";
   import * as HoverCard from "../components/ui/hover-card";
+  import { read, utils, write } from "xlsx";
 
   // Use a writable store for Users
   let open = false;
@@ -26,6 +27,7 @@
   let phone = "";
   let gender = "male";
   let failure = "";
+  let fileInput: HTMLInputElement;
 
   type User = {
     id: number;
@@ -394,6 +396,82 @@
     console.log(event);
     localStorage.setItem("pershift", JSON.stringify(perShift));
   }
+
+  function importSchedule(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[][] = utils.sheet_to_json(sheet, { header: 1 });
+      if (rows.length < 2) return;
+      const header = rows[0];
+      const days = header.length - 1;
+      const imported: User[] = [];
+      rows.slice(1).forEach((row, idx) => {
+        const name = row[0] ?? `User ${idx + 1}`;
+        const existing = $users.find((u) => u.name === name);
+        const shifts: string[] = new Array(days + 1).fill("-");
+        const offDays: Record<number, boolean> = {};
+        for (let i = 1; i <= days; i++) {
+          const val = String(row[i] ?? "-").toLowerCase();
+          if (val === "d") shifts[i] = "d";
+          else if (val === "n") shifts[i] = "n";
+          else if (val === "x" || val === "off") {
+            offDays[i - 1] = true;
+            shifts[i] = "-";
+          } else {
+            shifts[i] = val || "-";
+          }
+        }
+        imported.push({
+          id: existing ? existing.id : idx + 1,
+          name,
+          email: existing ? existing.email : "",
+          phone: existing ? existing.phone : "",
+          gender: existing ? existing.gender : "male",
+          offDays,
+          score: 0,
+          days: 0,
+          nights: 0,
+          shifts: shifts as [string]
+        });
+      });
+      users.set(imported);
+      localStorage.setItem("users", JSON.stringify(imported));
+      input.value = "";
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function exportSchedule() {
+    const header = ["Name", ...Array.from({ length: daysInMonth.length }, (_, i) => i + 1)];
+    const data: any[][] = [header];
+    $users.forEach((user) => {
+      const row: any[] = [user.name];
+      for (let i = 1; i <= daysInMonth.length; i++) {
+        if (user.offDays && user.offDays[i - 1]) row.push("x");
+        else row.push(user.shifts[i] ?? "-");
+      }
+      data.push(row);
+    });
+    const worksheet = utils.aoa_to_sheet(data);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, "Schedule");
+    const wbout = write(workbook, { type: "array", bookType: "xlsx" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "schedule.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <div class="print flex flex-col sm:flex-row justify-between">
@@ -403,6 +481,16 @@
   </div>
   <div class="print">
     <Numberinput value={perShift} on:change={handlePerShift}></Numberinput>
+  </div>
+  <div class="print flex items-center">
+    <input
+      type="file"
+      accept=".xls,.xlsx"
+      bind:this={fileInput}
+      on:change={importSchedule}
+      class="hidden"
+    />
+    <Button on:click={() => fileInput.click()} class="print">Import Schedule</Button>
   </div>
 </div>
 <div class="print">
@@ -513,4 +601,7 @@
     </Table.Body>
   </Table.Root>
 {/if}
-<Button on:click={() => generateSched()} class="print">Generate Schedule</Button>
+<div class="flex gap-2 print">
+  <Button on:click={() => generateSched()}>Generate Schedule</Button>
+  <Button on:click={exportSchedule}>Export Schedule</Button>
+</div>
