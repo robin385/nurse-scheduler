@@ -2,7 +2,7 @@
 	import { Calendar as CalendarPrimitive } from "bits-ui";
 	import ChevronRight from "svelte-radix/ChevronRight.svelte";
 	import { buttonVariants } from "$lib/components/ui/button/index.js";
-	import { cn } from "$lib/utils.js.js";
+	import { cn } from "$lib/utils";
 
 	type $$Props = CalendarPrimitive.NextButtonProps;
 	type $$Events = CalendarPrimitive.NextButtonEvents;
