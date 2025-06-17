@@ -19,6 +19,7 @@
   import * as HoverCard from "../components/ui/hover-card";
   import { read, utils, write } from "xlsx";
 
+
   // Use a writable store for Users
   let open = false;
   let perShift: number = 3;
@@ -447,6 +448,7 @@
     reader.readAsArrayBuffer(file);
   }
 
+
   function exportSchedule() {
     const header = ["Name", ...Array.from({ length: daysInMonth.length }, (_, i) => i + 1)];
     const data: any[][] = [header];
@@ -472,6 +474,7 @@
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }
+
 </script>
 
 <div class="print flex flex-col sm:flex-row justify-between">
