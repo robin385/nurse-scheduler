@@ -26,6 +26,7 @@
   "type": "module",
   "dependencies": {
     "@internationalized/date": "^3.5.2",
+    "@mdi/js": "^7.4.47",
     "bits-ui": "^0.19.7",
     "clsx": "^2.1.0",
     "dayjs": "^1.11.10",
