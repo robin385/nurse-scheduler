@@ -36,7 +36,7 @@
     email: string;
     phone: string;
     gender: string;
-    offDays: Record<number, boolean>;
+    offDays: Record<number, string>;
     score: number;
     days: number;
     nights: number;
@@ -112,7 +112,11 @@
     users.update((users) => {
       const userIndex = users.findIndex((u) => u.id === user.id);
       const updatedUser = { ...users[userIndex] }; // Clone the user
-      updatedUser.offDays[day.date() - 1] = !updatedUser.offDays[day.date() - 1]; // Update the offDays array
+      if (updatedUser.offDays[day.date() - 1]) {
+        delete updatedUser.offDays[day.date() - 1];
+      } else {
+        updatedUser.offDays[day.date() - 1] = 'X';
+      }
       users[userIndex] = updatedUser; // Replace the user in the users array
       return [...users]; // Return a new array
     });
@@ -173,7 +177,8 @@
     let i = usericii.length; // Assuming 'i' is the index for the new user
     usericii.forEach((user) => {
       user.shifts = new Array(daysInMonth.length + 2).fill("-");
-      user.score = 0;
+      const goCount = Object.values(user.offDays || {}).filter((v) => v === 'GO').length;
+      user.score = goCount * (4 / 7);
       user.days = 0;
       user.nights = 0;
     });
@@ -186,28 +191,28 @@
     let shiftn: Shift = [];
     for (let user of usericii) {
       for (let key in user.offDays) {
-        console.log(user.offDays[key], key, "key");
-        if (user.offDays && typeof user.offDays === "object")
-          if (user.offDays[Number(key)] == true) {
-            console.log("asjdawjawidjai");
-            let i = 1;
-            while (Number(key) - i > 0 && i < 5) {
-              if (user.offDays[Number(key) - i] == true) {
-                break;
-              }
-              const userr = usericii[i];
-              if (i > 2) {
-                prepareshift[user.id][Number(key) + 1 - i] +=
-                  Number(prepareshift[user.id][Number(key) + 1 - i]) + (2 / i) * 4;
-                i++;
-                continue;
-              }
-
-              prepareshift[user.id][Number(key) + 1 - i] +=
-                Number(prepareshift[user.id][Number(key) + 1 - i]) - (2 / i) * 2;
-              i++;
-            }
+        const val = user.offDays[Number(key)];
+        if (val) {
+          if (val === 'GO') {
+            user.score += 4 / 7;
           }
+          let i = 1;
+          while (Number(key) - i > 0 && i < 5) {
+            if (user.offDays[Number(key) - i]) {
+              break;
+            }
+            if (i > 2) {
+              prepareshift[user.id][Number(key) + 1 - i] +=
+                Number(prepareshift[user.id][Number(key) + 1 - i]) + (2 / i) * 4;
+              i++;
+              continue;
+            }
+
+            prepareshift[user.id][Number(key) + 1 - i] +=
+              Number(prepareshift[user.id][Number(key) + 1 - i]) - (2 / i) * 2;
+            i++;
+          }
+        }
       }
     }
     console.log(prepareshift, usericii, "prepareshift");
@@ -349,7 +354,7 @@
       ...user,
       shifts: [""],
       score: 0,
-      offDays: [],
+      offDays: {},
     }));
   };
   function removeUser(id: number) {
@@ -367,7 +372,7 @@
         email: email,
         phone: phone,
         gender: gender,
-        offDays: {} as Record<number, boolean>,
+        offDays: {} as Record<number, string>,
         score: 0,
         shifts: [""],
         days: 0,
@@ -416,13 +421,19 @@
         const name = row[0] ?? `User ${idx + 1}`;
         const existing = $users.find((u) => u.name === name);
         const shifts: string[] = new Array(days + 1).fill("-");
-        const offDays: Record<number, boolean> = {};
+        const offDays: Record<number, string> = {};
         for (let i = 1; i <= days; i++) {
           const val = String(row[i] ?? "-").toLowerCase();
           if (val === "d") shifts[i] = "d";
           else if (val === "n") shifts[i] = "n";
           else if (val === "x" || val === "off") {
-            offDays[i - 1] = true;
+            offDays[i - 1] = "X";
+            shifts[i] = "-";
+          } else if (val === "bo") {
+            offDays[i - 1] = "BO";
+            shifts[i] = "-";
+          } else if (val === "go") {
+            offDays[i - 1] = "GO";
             shifts[i] = "-";
           } else {
             shifts[i] = val || "-";
@@ -455,7 +466,7 @@
     $users.forEach((user) => {
       const row: any[] = [user.name];
       for (let i = 1; i <= daysInMonth.length; i++) {
-        if (user.offDays && user.offDays[i - 1]) row.push("x");
+        if (user.offDays && user.offDays[i - 1]) row.push(user.offDays[i - 1]);
         else row.push(user.shifts[i] ?? "-");
       }
       data.push(row);
@@ -592,7 +603,11 @@
                 {#if user.shifts && user.shifts.length > 20}
                   <span style="color: black; max-width:20px;">{user.shifts[i + 1]}</span>
                 {:else if user.offDays[day.date() - 1]}
-                  <span class="flex items-center justify-center -ml-2" style="color: red;"><X></X></span>
+                  {#if ['BO', 'GO', 'X'].includes(user.offDays[day.date() - 1])}
+                    <span style="color: red; max-width:20px;">{user.offDays[day.date() - 1]}</span>
+                  {:else}
+                    <span class="flex items-center justify-center -ml-2" style="color: red;"><X></X></span>
+                  {/if}
                 {:else}
                   <span class="flex items-center justify-center -ml-2" style="color: green;"><Check></Check></span>
                 {/if}
